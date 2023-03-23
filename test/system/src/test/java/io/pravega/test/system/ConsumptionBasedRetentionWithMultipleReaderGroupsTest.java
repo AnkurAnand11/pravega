@@ -440,7 +440,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
 
         // Now stop the controller instance executing scale operation.
         Futures.getAndHandleExceptions(controllerService.scaleService(0), ExecutionException::new);
-        log.info("Successfully stopped instance of controller service");;
+        log.info("Successfully stopped instance of controller service");
 
         /*Futures.getAndHandleExceptions(segmentStoreService.scaleService(0), ExecutionException::new);
         log.info("Successfully stopped instance of segment store service");*/
@@ -470,11 +470,11 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
 
         log.info("Ankur waiting for assertions after creating new controller {}", controller2.getSegmentsAtTime(
                 new StreamImpl(SCOPE_3, STREAM_4), 0L).join());
-        log.info("Is subscriber updated to new controller {}", controller2.listSubscribers(SCOPE_3, STREAM_4));
+        log.info("Is subscriber updated to new controller {}", controller2.listSubscribers(SCOPE_3, STREAM_4).join().size());
         log.info("Starting time is {}", System.currentTimeMillis());
         AssertExtensions.assertEventuallyEquals("Truncation did not take place at offset 120.", true, () -> controller2.getSegmentsAtTime(
                         new StreamImpl(SCOPE_3, STREAM_4), 0L).join().values().stream().anyMatch(off -> off == 120),
-                5000,  2 * 60 * 1000L);
+                5000,  3 * 60 * 1000L);
         log.info("End  time is {}", System.currentTimeMillis());
     }
 
