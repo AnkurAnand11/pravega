@@ -470,10 +470,11 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
 
         log.info("Ankur waiting for assertions after creating new controller {}", controller2.getSegmentsAtTime(
                 new StreamImpl(SCOPE_3, STREAM_4), 0L).join());
+        log.info("Is subscriber updated to new controller {}", controller2.listSubscribers(SCOPE_3, STREAM_4));
         log.info("Starting time is {}", System.currentTimeMillis());
         AssertExtensions.assertEventuallyEquals("Truncation did not take place at offset 120.", true, () -> controller2.getSegmentsAtTime(
                         new StreamImpl(SCOPE_3, STREAM_4), 0L).join().values().stream().anyMatch(off -> off == 120),
-                5000,  5 * 60 * 1000L);
+                5000,  2 * 60 * 1000L);
         log.info("End  time is {}", System.currentTimeMillis());
     }
 
