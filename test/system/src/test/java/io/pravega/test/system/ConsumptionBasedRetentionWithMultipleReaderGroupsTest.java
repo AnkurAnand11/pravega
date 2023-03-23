@@ -463,11 +463,13 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
 
 
         controllerURI = URI.create("tcp://" + String.join(",", uris));
-        clientConfig = Utils.buildClientConfig(controllerURI);
+        log.info("Ankur new controller uri is {}",controllerURI);
+        ClientConfig clientConf = Utils.buildClientConfig(controllerURI);
+        log.info("Ankur new client conf controller uri is {}",clientConf.getControllerURI());
         @Cleanup
         final Controller controller2 = new ControllerImpl(
                 ControllerImplConfig.builder()
-                        .clientConfig(clientConfig)
+                        .clientConfig(clientConf)
                         .build(), executor);
 
         log.info("Ankur waiting for assertions after creating new controller");
