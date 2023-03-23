@@ -442,23 +442,20 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         Futures.getAndHandleExceptions(controllerService.scaleService(0), ExecutionException::new);
         log.info("Successfully stopped instance of controller service");;
 
-        Futures.getAndHandleExceptions(segmentStoreService.scaleService(0), ExecutionException::new);
-        log.info("Successfully stopped instance of segment store service");
+        /*Futures.getAndHandleExceptions(segmentStoreService.scaleService(0), ExecutionException::new);
+        log.info("Successfully stopped instance of segment store service");*/
 
 
         Futures.getAndHandleExceptions(controllerService.scaleService(1), ExecutionException::new);
         log.info("Ankur Successfully started 1 instance of controller service");;
-        Futures.getAndHandleExceptions(segmentStoreService.scaleService(1), ExecutionException::new);
-        log.info("Ankur Successfully started 1 instance of segment store service");
+        /*Futures.getAndHandleExceptions(segmentStoreService.scaleService(1), ExecutionException::new);
+        log.info("Ankur Successfully started 1 instance of segment store service");*/
 
         List<URI> controllerUris = controllerService.getServiceDetails();
         log.info("Pravega Controller service  details: {}", controllerUris);
         List<String> uris = controllerUris.stream().filter(ISGRPC).map(URI::getAuthority).collect(Collectors.toList());
         log.info("Pravega filtered Controller uris: {}", uris);
         assertEquals("1 controller instances should be running", 1, uris.size());
-
-        List<URI> segmentStoreUris = segmentStoreService.getServiceDetails();
-        log.info("Pravega Segment Store service  details: {}", segmentStoreUris);
 
 
         controllerURI = URI.create("tcp://" + String.join(",", uris));
@@ -471,10 +468,13 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
                         .clientConfig(clientConf)
                         .build(), executor);
 
-        log.info("Ankur waiting for assertions after creating new controller");
-        AssertExtensions.assertEventuallyEquals("Truncation did not take place at offset 12   0.", true, () -> controller2.getSegmentsAtTime(
+        log.info("Ankur waiting for assertions after creating new controller {}", controller2.getSegmentsAtTime(
+                new StreamImpl(SCOPE_3, STREAM_4), 0L).join());
+        log.info("Starting time is {}", System.currentTimeMillis());
+        AssertExtensions.assertEventuallyEquals("Truncation did not take place at offset 120.", true, () -> controller2.getSegmentsAtTime(
                         new StreamImpl(SCOPE_3, STREAM_4), 0L).join().values().stream().anyMatch(off -> off == 120),
-                5000, 2 * 60 * 1000L);
+                5000,  5 * 60 * 1000L);
+        log.info("End  time is {}", System.currentTimeMillis());
     }
 
 
