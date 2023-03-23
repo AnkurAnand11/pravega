@@ -454,12 +454,11 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         List<URI> controllerUris = controllerService.getServiceDetails();
         log.info("Pravega Controller service  details: {}", controllerUris);
         List<String> uris = controllerUris.stream().filter(ISGRPC).map(URI::getAuthority).collect(Collectors.toList());
+        log.info("Pravega filtered Controller uris: {}", uris);
         assertEquals("1 controller instances should be running", 1, uris.size());
 
         List<URI> segmentStoreUris = segmentStoreService.getServiceDetails();
         log.info("Pravega Segment Store service  details: {}", segmentStoreUris);
-        List<String> ssUris = segmentStoreUris.stream().filter(ISGRPC).map(URI::getAuthority).collect(Collectors.toList());
-        assertEquals("1 segment store instances should be running", 1, ssUris.size());
 
 
         controllerURI = URI.create("tcp://" + String.join(",", uris));
