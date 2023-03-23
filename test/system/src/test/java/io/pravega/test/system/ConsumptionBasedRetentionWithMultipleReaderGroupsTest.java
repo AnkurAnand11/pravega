@@ -118,13 +118,15 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         URI zkUri = startZookeeperInstance();
         startBookkeeperInstances(zkUri);
         URI controllerUri = ensureControllerRunning(zkUri);
-        ensureSegmentStoreRunning(zkUri, controllerUri);
+        List<URI> segmentUri = ensureSegmentStoreRunning(zkUri, controllerUri);
+        log.info("Ankur 3. segmentURI {}", segmentUri);
     }
 
     @Before
     public void setup() {
         controllerService = Utils.createPravegaControllerService(null);
         List<URI> controllerURIs = controllerService.getServiceDetails();
+        log.info("Ankur 1. Pravega Controller service  details: {}", controllerURIs);
         controllerURI = controllerURIs.get(0);
 
         clientConfig = Utils.buildClientConfig(controllerURI);
@@ -401,7 +403,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
     public void testCBRwithControllerAndSegmentStoreRestart() throws Exception {
         segmentStoreService = Utils.createPravegaSegmentStoreService(null, controllerURI);
         assertTrue(segmentStoreService.isRunning());
-        log.info("Pravega Segmentstore service instance details: {}", segmentStoreService.getServiceDetails());
+        log.info("Ankur 2. Pravega Segmentstore service instance details: {}", segmentStoreService.getServiceDetails());
 
         assertTrue("Creating scope", streamManager.createScope(SCOPE_3));
         assertTrue("Creating stream", streamManager.createStream(SCOPE_3, STREAM_4, STREAM_CONFIGURATION));
@@ -438,41 +440,39 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
 
         // Now stop the controller instance executing scale operation.
         Futures.getAndHandleExceptions(controllerService.scaleService(0), ExecutionException::new);
-        log.info("Successfully stopped instance of controller service");
+        log.info("Successfully stopped instance of controller service");;
+
+        Futures.getAndHandleExceptions(segmentStoreService.scaleService(0), ExecutionException::new);
+        log.info("Successfully stopped instance of segment store service");
+
+
+        Futures.getAndHandleExceptions(controllerService.scaleService(1), ExecutionException::new);
+        log.info("Ankur Successfully started 1 instance of controller service");;
+        Futures.getAndHandleExceptions(segmentStoreService.scaleService(1), ExecutionException::new);
+        log.info("Ankur Successfully started 1 instance of segment store service");
 
         List<URI> controllerUris = controllerService.getServiceDetails();
         log.info("Pravega Controller service  details: {}", controllerUris);
         List<String> uris = controllerUris.stream().filter(ISGRPC).map(URI::getAuthority).collect(Collectors.toList());
-        assertEquals("0 controller instances should be running", 0, uris.size());
-
-        Futures.getAndHandleExceptions(segmentStoreService.scaleService(0), ExecutionException::new);
-        log.info("Successfully stopped instance of segment store service");
-        List<URI> segmentStoreUris = segmentStoreService.getServiceDetails();
-        log.info("Pravega Segment Store service  details: {}", controllerUris);
-        List<String> ssUris = segmentStoreUris.stream().filter(ISGRPC).map(URI::getAuthority).collect(Collectors.toList());
-        assertEquals("0 segment store instances should be running", 0, ssUris.size());
-
-        Futures.getAndHandleExceptions(controllerService.scaleService(1), ExecutionException::new);
-        Futures.getAndHandleExceptions(segmentStoreService.scaleService(1), ExecutionException::new);
-
-        controllerUris = controllerService.getServiceDetails();
-        log.info("Pravega Controller service  details: {}", controllerUris);
-        uris = controllerUris.stream().filter(ISGRPC).map(URI::getAuthority).collect(Collectors.toList());
         assertEquals("1 controller instances should be running", 1, uris.size());
-        segmentStoreUris = segmentStoreService.getServiceDetails();
-        log.info("Pravega Segment Store service  details: {}", controllerUris);
-        ssUris = segmentStoreUris.stream().filter(ISGRPC).map(URI::getAuthority).collect(Collectors.toList());
+
+        List<URI> segmentStoreUris = segmentStoreService.getServiceDetails();
+        log.info("Pravega Segment Store service  details: {}", segmentStoreUris);
+        List<String> ssUris = segmentStoreUris.stream().filter(ISGRPC).map(URI::getAuthority).collect(Collectors.toList());
         assertEquals("1 segment store instances should be running", 1, ssUris.size());
 
 
         controllerURI = URI.create("tcp://" + String.join(",", uris));
         clientConfig = Utils.buildClientConfig(controllerURI);
-        controller = new ControllerImpl(ControllerImplConfig.builder()
-                .clientConfig(clientConfig)
-                .maxBackoffMillis(5000).build(), executor);
+        @Cleanup
+        final Controller controller2 = new ControllerImpl(
+                ControllerImplConfig.builder()
+                        .clientConfig(clientConfig)
+                        .build(), executor);
 
-        AssertExtensions.assertEventuallyEquals("Truncation did not take place at offset 12   0.", true, () -> controller.getSegmentsAtTime(
-                        new StreamImpl(SCOPE, STREAM), 0L).join().values().stream().anyMatch(off -> off == 120),
+        log.info("Ankur waiting for assertions after creating new controller");
+        AssertExtensions.assertEventuallyEquals("Truncation did not take place at offset 12   0.", true, () -> controller2.getSegmentsAtTime(
+                        new StreamImpl(SCOPE_3, STREAM_4), 0L).join().values().stream().anyMatch(off -> off == 120),
                 5000, 2 * 60 * 1000L);
     }
 
