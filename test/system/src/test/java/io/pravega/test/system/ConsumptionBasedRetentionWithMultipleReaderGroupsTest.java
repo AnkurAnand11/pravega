@@ -125,7 +125,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
     public static void initialize() throws MarathonException, ExecutionException {
         URI zkUri = startZookeeperInstance();
         startBookkeeperInstances(zkUri);
-        URI controllerUri = startPravegaControllerInstances(zkUri, 1);
+        URI controllerUri = startPravegaControllerInstances(zkUri, 3);
         ensureSegmentStoreRunning(zkUri, controllerUri);
     }
 
@@ -468,16 +468,12 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         log.info("{} updating its retention stream-cut to {}", READER_GROUP_5, streamCuts);
         readerGroup.updateRetentionStreamCut(streamCuts);
 
-        // Now stop the controller instance executing scale operation.
-        Futures.getAndHandleExceptions(controllerService.scaleService(0), ExecutionException::new);
-        log.info("Successfully stopped instance of controller service");
-
         /*Futures.getAndHandleExceptions(segmentStoreService.scaleService(0), ExecutionException::new);
         log.info("Successfully stopped instance of segment store service");*/
 
 
         Futures.getAndHandleExceptions(controllerService.scaleService(1), ExecutionException::new);
-        log.info("Ankur Successfully started 1 instance of controller service");;
+        log.info("Ankur Successfully started 1 instance of controller service");
         /*Futures.getAndHandleExceptions(segmentStoreService.scaleService(1), ExecutionException::new);
         log.info("Ankur Successfully started 1 instance of segment store service");*/
 
@@ -504,7 +500,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         log.info("Starting time is {}", System.currentTimeMillis());
         AssertExtensions.assertEventuallyEquals("Truncation did not take place at offset 120.", true, () -> controller2.getSegmentsAtTime(
                         new StreamImpl(SCOPE_3, STREAM_4), 0L).join().values().stream().anyMatch(off -> off == 120),
-                5000,  3 * 60 * 1000L);
+                5000,  2 * 60 * 1000L);
         log.info("End  time is {}", System.currentTimeMillis());
     }
 
