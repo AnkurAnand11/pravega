@@ -113,16 +113,23 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
      * This is used to setup the various services required by the system test framework.
      * @throws MarathonException    when error in setup
      */
-    @Environment
+    /*@Environment
     public static void initialize() throws MarathonException {
         URI zkUri = startZookeeperInstance();
         startBookkeeperInstances(zkUri);
         URI controllerUri = ensureControllerRunning(zkUri);
         List<URI> segmentUri = ensureSegmentStoreRunning(zkUri, controllerUri);
         log.info("Ankur 3. segmentURI {}", segmentUri);
+    }*/
+    @Environment
+    public static void initialize() throws MarathonException, ExecutionException {
+        URI zkUri = startZookeeperInstance();
+        startBookkeeperInstances(zkUri);
+        URI controllerUri = startPravegaControllerInstances(zkUri, 1);
+        ensureSegmentStoreRunning(zkUri, controllerUri);
     }
 
-    @Before
+    /*@Before
     public void setup() {
         controllerService = Utils.createPravegaControllerService(null);
         List<URI> controllerURIs = controllerService.getServiceDetails();
@@ -135,6 +142,32 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
                 .clientConfig(clientConfig)
                 .maxBackoffMillis(5000).build(), executor);
         streamManager = StreamManager.create(clientConfig);
+    }*/
+    @Before
+    public void getControllerInfo() {
+        Service zkService = Utils.createZookeeperService();
+        Assert.assertTrue(zkService.isRunning());
+        List<URI> zkUris = zkService.getServiceDetails();
+        log.info("zookeeper service details: {}", zkUris);
+        controllerService = Utils.createPravegaControllerService(zkUris.get(0));
+        if (!controllerService.isRunning()) {
+            controllerService.start(true);
+        }
+        List<URI> controllerUris = controllerService.getServiceDetails();
+        log.info("Controller uris: {}", controllerUris);
+        // Fetch all the RPC endpoints and construct the client URIs.
+        final List<String> uris = controllerUris.stream().filter(ISGRPC).map(URI::getAuthority).collect(Collectors.toList());
+
+        controllerURI = URI.create((Utils.TLS_AND_AUTH_ENABLED ? TLS : TCP) + String.join(",", uris));
+        log.info("Controller Service direct URI: {}", controllerURI);
+        clientConfig = Utils.buildClientConfig(controllerURI);
+
+        controller = new ControllerImpl(ControllerImplConfig.builder()
+                .clientConfig(clientConfig)
+                .maxBackoffMillis(5000).build(), executor);
+        streamManager = StreamManager.create(clientConfig);
+
+        segmentStoreService = Utils.createPravegaSegmentStoreService(zkUris.get(0), controllerUris.get(0));
     }
 
     @After
@@ -401,9 +434,6 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
 
     @Test
     public void testCBRwithControllerAndSegmentStoreRestart() throws Exception {
-        segmentStoreService = Utils.createPravegaSegmentStoreService(null, controllerURI);
-        assertTrue(segmentStoreService.isRunning());
-        log.info("Ankur 2. Pravega Segmentstore service instance details: {}", segmentStoreService.getServiceDetails());
 
         assertTrue("Creating scope", streamManager.createScope(SCOPE_3));
         assertTrue("Creating stream", streamManager.createStream(SCOPE_3, STREAM_4, STREAM_CONFIGURATION));
