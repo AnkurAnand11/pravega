@@ -566,6 +566,8 @@ public class StreamMetadataTasks extends TaskBase {
                //2. check for generation && ID match with existing config
                return streamMetadataStore.getReaderGroupConfigRecord(scope, rgName, context, executor)
                       .thenCompose(rgConfigRecord -> {
+                          log.info("Ankur readergroupconfig generation from Database  {}", rgConfigRecord.getObject().getGeneration());
+                          log.info("Ankur readergroupconfig generation what I am sending {}", config.getGeneration());
                         if (rgConfigRecord.getObject().getGeneration() != config.getGeneration()) {
                             UpdateReaderGroupResponse response = UpdateReaderGroupResponse.newBuilder()
                                     .setStatus(UpdateReaderGroupResponse.Status.INVALID_CONFIG)
@@ -929,6 +931,8 @@ public class StreamMetadataTasks extends TaskBase {
                                        return CompletableFuture.completedFuture(UpdateSubscriberStatus.Status.SUBSCRIBER_NOT_FOUND);
                                  }
                                  if (subscriberRecord.getObject().getGeneration() != generation) {
+                                     log.info("-------- {}",subscriberRecord.getObject().getGeneration());
+                                     log.info("-----generation --- {}",generation);
                                        return CompletableFuture.completedFuture(UpdateSubscriberStatus.Status.GENERATION_MISMATCH);
                                  }
                                  // 4. Update streamcut
@@ -974,7 +978,7 @@ public class StreamMetadataTasks extends TaskBase {
         return streamMetadataStore.getRetentionSet(scope, stream, context, executor)
                 .thenCompose(retentionSet -> {
                     StreamCutReferenceRecord latestCut = retentionSet.getLatest();
-
+                log.info("Check point for retentionset - latestCut {}",latestCut);
                     return generateStreamCutIfRequired(scope, stream, latestCut, recordingTime, context, delegationToken)
                             .thenCompose(newRecord -> truncate(scope, stream, policy, context, retentionSet, newRecord));
                 })
@@ -982,9 +986,10 @@ public class StreamMetadataTasks extends TaskBase {
 
     }
 
-    private CompletableFuture<StreamCutRecord> generateStreamCutIfRequired(String scope, String stream,
+    private CompletableFuture<StreamCutRecord>   generateStreamCutIfRequired(String scope, String stream,
                                                                            StreamCutReferenceRecord previous, long recordingTime,
                                                                            OperationContext context, String delegationToken) {
+        log.info("Check point for retentionset - previous {}",previous);
         if (previous == null || recordingTime - previous.getRecordingTime() > retentionFrequencyMillis.get()) {
             return Futures.exceptionallyComposeExpecting(
                     previous == null ? CompletableFuture.completedFuture(null) :
@@ -999,6 +1004,7 @@ public class StreamMetadataTasks extends TaskBase {
                                                      log.debug(context.getRequestId(),
                                                              "New streamCut generated for stream {}/{}",
                                                              scope, stream);
+                                                     log.info("Check point for retentionset - New streamCut generated for strea ");
                                                      return newRecord;
                                                  })));
         } else {
@@ -1017,9 +1023,11 @@ public class StreamMetadataTasks extends TaskBase {
                                                      RetentionPolicy policy, RetentionSet retentionSet) {
         long requestId = context.getRequestId();
         return streamMetadataStore.listSubscribers(scope, stream, context, executor)
-                           .thenCompose(list -> Futures.allOfWithResults(list.stream().map(x ->
+                           .thenCompose(list -> {
+                               log.info("Ankur Subscriber list {}",list);
+                                   return Futures.allOfWithResults(list.stream().map(x ->
                                    streamMetadataStore.getSubscriber(scope, stream, x, context, executor))
-                                                                             .collect(Collectors.toList())))
+                                                                             .collect(Collectors.toList()));})
                            .thenCompose(subscribers -> {
                                // convert all streamcuts to include the segment range
                                return Futures.allOfWithResults(subscribers.stream().map(x -> {
@@ -1039,6 +1047,8 @@ public class StreamMetadataTasks extends TaskBase {
                         toTruncateAt = getTruncationStreamCutByTimeLimit(scope, stream, context, policy, retentionSet, lowerBound);
                     }
                     return toTruncateAt.thenCompose(truncationStreamCut -> {
+                        log.debug("toTruncateAt value {}", truncationStreamCut);
+                        log.info("toTruncateAt value {}", truncationStreamCut);
                         if (truncationStreamCut == null || truncationStreamCut.isEmpty()) {
                             log.debug(context.getRequestId(),
                                     "no truncation record could be compute that satisfied retention policy");
@@ -1085,12 +1095,19 @@ public class StreamMetadataTasks extends TaskBase {
         // 2. if lowerbound.size < min, truncate at streamcut less than (behind/before) lowerbound that satisfies the policy. 
         // 3. if lowerbound.size > max, truncate at max
         long currentSize = retentionSet.getLatest().getRecordingSize();
+        log.info("Ankur - currentsize {}",currentSize);
+        log.info("Ankur - lowerbuind {}",lowerBound);
+        log.info("Ankur - retentionset {}",retentionSet);
+        log.debug("Ankur - lowerbuind {}",lowerBound);
+        log.debug("Ankur - retentionset {}",retentionSet);
+        log.info("Ankur - policy retentionParam {}",policy.getRetentionParam());
         // we get the streamcuts from retentionset that satisfy the min and max bounds with min pointing to most recent 
         // streamcut to satisfy both min and max bounds while max refering to oldest such streamcut in retention set.  
         Map.Entry<StreamCutReferenceRecord, StreamCutReferenceRecord> limits = getBoundStreamCuts(policy, retentionSet,
                 x -> currentSize - x.getRecordingSize());
-
         // if lowerbound is empty simply return min
+        log.info("Ankur Anand -> limits-> {}", limits);
+        log.debug("Ankur Anand -> limits-> {}", limits);
         if (lowerBound == null || lowerBound.isEmpty()) {
             return Optional.ofNullable(limits.getValue())
                     .map(x -> streamMetadataStore.getStreamCutRecord(scope, stream, x, context, executor)
@@ -1101,6 +1118,7 @@ public class StreamMetadataTasks extends TaskBase {
         return streamMetadataStore.getSizeTillStreamCut(scope, stream, lowerBound, Optional.empty(), context, executor)
                 .thenCompose(sizeTillLB -> {
                     long retainedSizeLB = currentSize - sizeTillLB;
+                    log.info("Ankur - retainedSizeLB {}",retainedSizeLB);
                     // if retainedSize is less than (behind/before) min size then we need to truncate at min or the most
                     // recent streamcut strictly less than (behind/before) lowerbound.
                     if (retainedSizeLB < policy.getRetentionParam()) {
@@ -1109,6 +1127,7 @@ public class StreamMetadataTasks extends TaskBase {
                         return Optional.ofNullable(limits.getValue()).map(x ->
                                 streamMetadataStore.getStreamCutRecord(scope, stream, limits.getValue(), context, executor)
                                    .thenCompose(limitMin -> {
+                                       log.info("Ankur - limitMin {}",limitMin);
                                        return streamMetadataStore.compareStreamCut(scope, stream, limitMin.getStreamCut(),
                                                lowerBound, context, executor)
                                          .thenCompose(compareWithMin -> {
@@ -1139,7 +1158,8 @@ public class StreamMetadataTasks extends TaskBase {
                         } else { // greater (ahead of/after) than max. truncate at max. 
                             // let there be data loss. its a lagging reader.. but if there is no streamcut in 
                             // retentionset that satisfied the min and max criteria, then we should simply truncate at 
-                            // least at the lowerbound 
+                            // least at the lowerbound
+                            log.info("Ankur Anand -> inside else Part-> {}", lowerBound);
                             return Optional.ofNullable(limits.getKey())
                                            .filter(x -> currentSize - x.getRecordingSize() < retainedSizeLB)
                                            .map(x -> streamMetadataStore.getStreamCutRecord(scope, stream, x, context, executor)
@@ -1154,12 +1174,15 @@ public class StreamMetadataTasks extends TaskBase {
                                                                                  RetentionPolicy policy, RetentionSet retentionSet,
                                                                                  Map<Long, Long> lowerBound) {
         long currentTime = retentionClock.get().get();
-
+        log.info("Ankur currentTime - {}",currentTime);
+        log.info("Ankur RetentionSet - {}",retentionSet);
         // we get the streamcuts from retentionset that satisfy the min and max bounds with min pointing to most recent 
         // streamcut to satisfy both min and max bounds while max refering to oldest such streamcut in retention set.
         // limits.key will refer to max and limit.value will refer to min. 
         Map.Entry<StreamCutReferenceRecord, StreamCutReferenceRecord> limits = getBoundStreamCuts(policy, retentionSet, 
                 x -> currentTime - x.getRecordingTime());
+        log.info("Ankur limits - {}",limits);
+        log.info("Ankur lowerBound - {}",lowerBound);
         // if subscriber lowerbound is greater than (ahead of/after) streamcut corresponding to the max time and is less than 
         // (behind/before) stream cut for min time  from the retention set then we can safely truncate at lowerbound. 
         // Else we will truncate at the max time bound if it exists
@@ -1192,6 +1215,9 @@ public class StreamMetadataTasks extends TaskBase {
                     StreamCutRecord limitMax = limitMaxFuture.join();
                     StreamCutRecord limitMin = limitMinFuture.join();
                     StreamCutRecord maxBound = maxBoundFuture.join();
+                    log.info("limitMax - {}",limitMax);
+                    log.info("limitMin - {}",limitMin);
+                    log.info("maxBound - {}",maxBound);
                     if (limitMin != null) {
                         return streamMetadataStore.compareStreamCut(scope, stream, limitMin.getStreamCut(), lowerBound,
                                 context, executor)

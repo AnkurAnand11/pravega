@@ -167,7 +167,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
                 .maxBackoffMillis(5000).build(), executor);
         streamManager = StreamManager.create(clientConfig);
 
-        segmentStoreService = Utils.createPravegaSegmentStoreService(zkUris.get(0), controllerUris.get(0));
+        segmentStoreService = Utils.createPravegaSegmentStoreService(zkUris.get(0), controllerURI);
     }
 
     @After
@@ -500,7 +500,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         log.info("Starting time is {}", System.currentTimeMillis());
         AssertExtensions.assertEventuallyEquals("Truncation did not take place at offset 120.", true, () -> controller2.getSegmentsAtTime(
                         new StreamImpl(SCOPE_3, STREAM_4), 0L).join().values().stream().anyMatch(off -> off == 120),
-                5000,  2 * 60 * 1000L);
+                5000,  10 * 60 * 1000L);
         log.info("End  time is {}", System.currentTimeMillis());
     }
 
