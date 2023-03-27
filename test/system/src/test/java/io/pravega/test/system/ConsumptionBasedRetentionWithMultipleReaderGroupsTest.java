@@ -443,7 +443,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         Futures.getAndHandleExceptions(controllerService.scaleService(3), ExecutionException::new);
         List<URI> controllerUris = controllerService.getServiceDetails();
         log.info("Pravega Controller service  details: {}", controllerUris);
-        final List<String> uris = controllerUris.stream().filter(ISGRPC).map(URI::getAuthority).collect(Collectors.toList());
+        List<String> uris = controllerUris.stream().filter(ISGRPC).map(URI::getAuthority).collect(Collectors.toList());
         assertEquals("3 controller instances should be running", 3, uris.size());
         // use the last three uris
         controllerURI = URI.create("tcp://" + String.join(",", uris));
@@ -494,9 +494,9 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         Futures.getAndHandleExceptions(segmentStoreService.scaleService(1), ExecutionException::new);
         log.info("Ankur Successfully started 1 instance of segment store service");
 
-        List<URI> controllerUris = controllerService.getServiceDetails();
+        controllerUris = controllerService.getServiceDetails();
         log.info("Pravega Controller service  details: {}", controllerUris);
-        List<String> uris = controllerUris.stream().filter(ISGRPC).map(URI::getAuthority).collect(Collectors.toList());
+        uris = controllerUris.stream().filter(ISGRPC).map(URI::getAuthority).collect(Collectors.toList());
         log.info("Pravega filtered Controller uris: {}", uris);
         assertEquals("1 controller instances should be running", 1, uris.size());
 
