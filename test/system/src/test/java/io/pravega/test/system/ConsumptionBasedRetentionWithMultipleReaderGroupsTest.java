@@ -435,6 +435,9 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
     @Test
     public void testCBRwithControllerAndSegmentStoreRestart() throws Exception {
 
+        Futures.getAndHandleExceptions(segmentStoreService.scaleService(2), ExecutionException::new);
+        log.info("Successfully stopped instance of segment store service");
+
         assertTrue("Creating scope", streamManager.createScope(SCOPE_3));
         assertTrue("Creating stream", streamManager.createStream(SCOPE_3, STREAM_4, STREAM_CONFIGURATION));
         @Cleanup
@@ -468,14 +471,10 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         log.info("{} updating its retention stream-cut to {}", READER_GROUP_5, streamCuts);
         readerGroup.updateRetentionStreamCut(streamCuts);
 
-        /*Futures.getAndHandleExceptions(segmentStoreService.scaleService(0), ExecutionException::new);
-        log.info("Successfully stopped instance of segment store service");*/
-
-
         Futures.getAndHandleExceptions(controllerService.scaleService(1), ExecutionException::new);
         log.info("Ankur Successfully started 1 instance of controller service");
-        /*Futures.getAndHandleExceptions(segmentStoreService.scaleService(1), ExecutionException::new);
-        log.info("Ankur Successfully started 1 instance of segment store service");*/
+        Futures.getAndHandleExceptions(segmentStoreService.scaleService(1), ExecutionException::new);
+        log.info("Ankur Successfully started 1 instance of segment store service");
 
         List<URI> controllerUris = controllerService.getServiceDetails();
         log.info("Pravega Controller service  details: {}", controllerUris);
