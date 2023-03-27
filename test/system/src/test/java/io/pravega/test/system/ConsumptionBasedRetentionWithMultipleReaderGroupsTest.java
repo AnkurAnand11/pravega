@@ -113,24 +113,28 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
      * This is used to setup the various services required by the system test framework.
      * @throws MarathonException    when error in setup
      */
-    /*@Environment
+    @Environment
     public static void initialize() throws MarathonException {
         URI zkUri = startZookeeperInstance();
         startBookkeeperInstances(zkUri);
         URI controllerUri = ensureControllerRunning(zkUri);
         List<URI> segmentUri = ensureSegmentStoreRunning(zkUri, controllerUri);
         log.info("Ankur 3. segmentURI {}", segmentUri);
-    }*/
-    @Environment
+    }
+    /*@Environment
     public static void initialize() throws MarathonException, ExecutionException {
         URI zkUri = startZookeeperInstance();
         startBookkeeperInstances(zkUri);
         URI controllerUri = startPravegaControllerInstances(zkUri, 3);
         ensureSegmentStoreRunning(zkUri, controllerUri);
-    }
+    }*/
 
     /*@Before
     public void setup() {
+        Service zkService = Utils.createZookeeperService();
+        Assert.assertTrue(zkService.isRunning());
+        List<URI> zkUris = zkService.getServiceDetails();
+        log.info("zookeeper service details: {}", zkUris);
         controllerService = Utils.createPravegaControllerService(null);
         List<URI> controllerURIs = controllerService.getServiceDetails();
         log.info("Ankur 1. Pravega Controller service  details: {}", controllerURIs);
@@ -142,6 +146,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
                 .clientConfig(clientConfig)
                 .maxBackoffMillis(5000).build(), executor);
         streamManager = StreamManager.create(clientConfig);
+        segmentStoreService = Utils.createPravegaSegmentStoreService(zkUris.get(0), controllerURI);
     }*/
     @Before
     public void getControllerInfo() {
@@ -434,6 +439,19 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
 
     @Test
     public void testCBRwithControllerAndSegmentStoreRestart() throws Exception {
+
+        Futures.getAndHandleExceptions(controllerService.scaleService(3), ExecutionException::new);
+        List<URI> controllerUris = controllerService.getServiceDetails();
+        log.info("Pravega Controller service  details: {}", controllerUris);
+        final List<String> uris = controllerUris.stream().filter(ISGRPC).map(URI::getAuthority).collect(Collectors.toList());
+        assertEquals("3 controller instances should be running", 3, uris.size());
+        // use the last three uris
+        controllerURI = URI.create("tcp://" + String.join(",", uris));
+        clientConfig = Utils.buildClientConfig(controllerURI);
+        controller = new ControllerImpl(ControllerImplConfig.builder()
+                .clientConfig(clientConfig)
+                .maxBackoffMillis(5000).build(), executor);
+        streamManager = StreamManager.create(clientConfig);
 
         Futures.getAndHandleExceptions(segmentStoreService.scaleService(2), ExecutionException::new);
         log.info("Successfully stopped instance of segment store service");
