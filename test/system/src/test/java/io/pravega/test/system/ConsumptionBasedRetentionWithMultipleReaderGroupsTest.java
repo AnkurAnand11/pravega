@@ -440,7 +440,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
     @Test
     public void testCBRwithControllerAndSegmentStoreRestart() throws Exception {
 
-        Futures.getAndHandleExceptions(controllerService.scaleService(3), ExecutionException::new);
+       /* Futures.getAndHandleExceptions(controllerService.scaleService(3), ExecutionException::new);
         List<URI> controllerUris = controllerService.getServiceDetails();
         log.info("Pravega Controller service  details: {}", controllerUris);
         List<String> uris = controllerUris.stream().filter(ISGRPC).map(URI::getAuthority).collect(Collectors.toList());
@@ -454,7 +454,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         streamManager = StreamManager.create(clientConfig);
 
         Futures.getAndHandleExceptions(segmentStoreService.scaleService(2), ExecutionException::new);
-        log.info("Successfully stopped instance of segment store service");
+        log.info("Successfully stopped instance of segment store service");*/
 
         assertTrue("Creating scope", streamManager.createScope(SCOPE_3));
         assertTrue("Creating stream", streamManager.createStream(SCOPE_3, STREAM_4, STREAM_CONFIGURATION));
@@ -489,14 +489,19 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         log.info("{} updating its retention stream-cut to {}", READER_GROUP_5, streamCuts);
         readerGroup.updateRetentionStreamCut(streamCuts);
 
+        Futures.getAndHandleExceptions(controllerService.scaleService(0), ExecutionException::new);
+        log.info("Ankur Successfully stopped 1 instance of controller service");
+        Futures.getAndHandleExceptions(segmentStoreService.scaleService(0), ExecutionException::new);
+        log.info("Ankur Successfully stopped 1 instance of segment store service");
+
         Futures.getAndHandleExceptions(controllerService.scaleService(1), ExecutionException::new);
         log.info("Ankur Successfully started 1 instance of controller service");
         Futures.getAndHandleExceptions(segmentStoreService.scaleService(1), ExecutionException::new);
         log.info("Ankur Successfully started 1 instance of segment store service");
 
-        controllerUris = controllerService.getServiceDetails();
+        List<URI> controllerUris = controllerService.getServiceDetails();
         log.info("Pravega Controller service  details: {}", controllerUris);
-        uris = controllerUris.stream().filter(ISGRPC).map(URI::getAuthority).collect(Collectors.toList());
+        List<String> uris = controllerUris.stream().filter(ISGRPC).map(URI::getAuthority).collect(Collectors.toList());
         log.info("Pravega filtered Controller uris: {}", uris);
         assertEquals("1 controller instances should be running", 1, uris.size());
 
