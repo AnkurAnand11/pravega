@@ -510,17 +510,16 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         log.info("Ankur new controller uri is {}",controllerURI);
         ClientConfig clientConf = Utils.buildClientConfig(controllerURI);
         log.info("Ankur new client conf controller uri is {}",clientConf.getControllerURI());
-        @Cleanup
-        final Controller controller2 = new ControllerImpl(
-                ControllerImplConfig.builder()
-                        .clientConfig(clientConf)
-                        .build(), executor);
+        streamManager = StreamManager.create(clientConf);
+        controller = new ControllerImpl(ControllerImplConfig.builder()
+                .clientConfig(clientConf)
+                .maxBackoffMillis(5000).build(), executor);
 
-        log.info("Ankur waiting for assertions after creating new controller {}", controller2.getSegmentsAtTime(
+        log.info("Ankur waiting for assertions after creating new controller {}", controller.getSegmentsAtTime(
                 new StreamImpl(SCOPE_3, STREAM_4), 0L).join());
-        log.info("Is subscriber updated to new controller {}", controller2.listSubscribers(SCOPE_3, STREAM_4).join().size());
+        log.info("Is subscriber updated to new controller {}", controller.listSubscribers(SCOPE_3, STREAM_4).join().size());
         log.info("Starting time is {}", System.currentTimeMillis());
-        AssertExtensions.assertEventuallyEquals("Truncation did not take place at offset 60.", true, () -> controller2.getSegmentsAtTime(
+        AssertExtensions.assertEventuallyEquals("Truncation did not take place at offset 60.", true, () -> controller.getSegmentsAtTime(
                         new StreamImpl(SCOPE_3, STREAM_4), 0L).join().values().stream().anyMatch(off -> off == 60),
                 5000,  2 * 60 * 1000L);
         log.info("End  time is {}", System.currentTimeMillis());
