@@ -494,6 +494,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         Futures.getAndHandleExceptions(segmentStoreService.scaleService(0), ExecutionException::new);
         log.info("Ankur Successfully stopped 1 instance of segment store service");
 
+
         Futures.getAndHandleExceptions(controllerService.scaleService(1), ExecutionException::new);
         log.info("Ankur Successfully started 1 instance of controller service");
         Futures.getAndHandleExceptions(segmentStoreService.scaleService(1), ExecutionException::new);
@@ -514,6 +515,9 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         controller = new ControllerImpl(ControllerImplConfig.builder()
                 .clientConfig(clientConf)
                 .maxBackoffMillis(5000).build(), executor);
+        connectionFactory = new SocketConnectionFactoryImpl(ClientConfig.builder().build());
+        clientFactory = new ClientFactoryImpl(SCOPE_3, controller, connectionFactory);
+        readerGroupManager = ReaderGroupManager.withScope(SCOPE_3, clientConfig);
 
         log.info("Ankur waiting for assertions after creating new controller {}", controller.getSegmentsAtTime(
                 new StreamImpl(SCOPE_3, STREAM_4), 0L).join());
