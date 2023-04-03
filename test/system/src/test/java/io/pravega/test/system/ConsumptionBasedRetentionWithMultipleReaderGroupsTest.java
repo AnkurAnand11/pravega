@@ -177,7 +177,9 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
 
     @After
     public void tearDown() {
+        log.info("Closing streamManager");
         streamManager.close();
+        log.info("Closing controller");
         controller.close();
         ExecutorServiceHelpers.shutdown(executor);
         ExecutorServiceHelpers.shutdown(streamCutExecutor);
@@ -517,7 +519,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
                 .maxBackoffMillis(5000).build(), executor);
         connectionFactory = new SocketConnectionFactoryImpl(ClientConfig.builder().build());
         clientFactory = new ClientFactoryImpl(SCOPE_3, controller, connectionFactory);
-        readerGroupManager = ReaderGroupManager.withScope(SCOPE_3, clientConfig);
+        readerGroupManager = ReaderGroupManager.withScope(SCOPE_3, clientConf);
 
         log.info("Ankur waiting for assertions after creating new controller {}", controller.getSegmentsAtTime(
                 new StreamImpl(SCOPE_3, STREAM_4), 0L).join());
