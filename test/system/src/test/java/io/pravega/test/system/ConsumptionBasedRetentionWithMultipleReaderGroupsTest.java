@@ -181,8 +181,11 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         streamManager.close();
         log.info("Closing controller");
         controller.close();
+        log.info("controller closed");
         ExecutorServiceHelpers.shutdown(executor);
+        log.info("Executor completed");
         ExecutorServiceHelpers.shutdown(streamCutExecutor);
+        log.info("Tear down completed");
     }
 
     @Test
@@ -460,26 +463,26 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
 
         assertTrue("Creating scope", streamManager.createScope(SCOPE_3));
         assertTrue("Creating stream", streamManager.createStream(SCOPE_3, STREAM_4, STREAM_CONFIGURATION));
-        @Cleanup
+
         ConnectionFactory connectionFactory = new SocketConnectionFactoryImpl(ClientConfig.builder().build());
-        @Cleanup
+
         ClientFactoryImpl clientFactory = new ClientFactoryImpl(SCOPE_3, controller, connectionFactory);
-        @Cleanup
+
         EventStreamWriter<String> writer = clientFactory.createEventWriter(STREAM_4, new JavaSerializer<>(),
                 EventWriterConfig.builder().build());
         // Write six event.
         writingEventsToStream(6, writer, SCOPE_3, STREAM_4);
-        @Cleanup
+
         ReaderGroupManager readerGroupManager = ReaderGroupManager.withScope(SCOPE_3, clientConfig);
         ReaderGroupConfig readerGroupConfig = getReaderGroupConfig(SCOPE_3, STREAM_4, ReaderGroupConfig.StreamDataRetention.MANUAL_RELEASE_AT_USER_STREAMCUT);
 
         assertTrue("Reader group is not created", readerGroupManager.createReaderGroup(READER_GROUP_5, readerGroupConfig));
         assertEquals(1, controller.listSubscribers(SCOPE_3, STREAM_4).join().size());
 
-        @Cleanup
+
         ReaderGroup readerGroup = readerGroupManager.getReaderGroup(READER_GROUP_5);
         AtomicLong clock = new AtomicLong();
-        @Cleanup
+
         EventStreamReader<String> reader = clientFactory.createReader(READER_GROUP_5 + "-" + 1,
                 READER_GROUP_5, new JavaSerializer<>(), readerConfig, clock::get, clock::get);
         // Read two event with reader.
@@ -491,16 +494,30 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         log.info("{} updating its retention stream-cut to {}", READER_GROUP_5, streamCuts);
         readerGroup.updateRetentionStreamCut(streamCuts);
 
+        log.info("Closing reader");
+        reader.close();
+        log.info("Closing readerGroup");
+        readerGroup.close();
+        log.info("Closing readerGroupManager");
+        readerGroupManager.close();
+        log.info("Closing writer");
+        writer.close();
+        log.info("Closing clientFactory");
+        clientFactory.close();
+        log.info("Closing connectionFactory");
+        connectionFactory.close();
+        log.info("Scaling down controller ");
         Futures.getAndHandleExceptions(controllerService.scaleService(0), ExecutionException::new);
         log.info("Ankur Successfully stopped 1 instance of controller service");
         Futures.getAndHandleExceptions(segmentStoreService.scaleService(0), ExecutionException::new);
         log.info("Ankur Successfully stopped 1 instance of segment store service");
 
 
-        Futures.getAndHandleExceptions(controllerService.scaleService(1), ExecutionException::new);
-        log.info("Ankur Successfully started 1 instance of controller service");
         Futures.getAndHandleExceptions(segmentStoreService.scaleService(1), ExecutionException::new);
         log.info("Ankur Successfully started 1 instance of segment store service");
+        Futures.getAndHandleExceptions(controllerService.scaleService(1), ExecutionException::new);
+        log.info("Ankur Successfully started 1 instance of controller service");
+
 
         List<URI> controllerUris = controllerService.getServiceDetails();
         log.info("Pravega Controller service  details: {}", controllerUris);
@@ -517,9 +534,6 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         controller = new ControllerImpl(ControllerImplConfig.builder()
                 .clientConfig(clientConf)
                 .maxBackoffMillis(5000).build(), executor);
-        connectionFactory = new SocketConnectionFactoryImpl(ClientConfig.builder().build());
-        clientFactory = new ClientFactoryImpl(SCOPE_3, controller, connectionFactory);
-        readerGroupManager = ReaderGroupManager.withScope(SCOPE_3, clientConf);
 
         log.info("Ankur waiting for assertions after creating new controller {}", controller.getSegmentsAtTime(
                 new StreamImpl(SCOPE_3, STREAM_4), 0L).join());
