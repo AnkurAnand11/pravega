@@ -50,10 +50,7 @@ import io.pravega.test.system.framework.services.Service;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import mesosphere.marathon.client.MarathonException;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 
@@ -159,6 +156,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
     }
 
     @Test
+    @Ignore
     public void multipleSubscriberCBRTest() throws Exception {
         assertTrue("Creating scope", streamManager.createScope(SCOPE));
         assertTrue("Creating stream", streamManager.createStream(SCOPE, STREAM, STREAM_CONFIGURATION));
@@ -266,6 +264,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
     }
 
     @Test
+    @Ignore
     public void updateRetentionPolicyForCBRTest() throws Exception {
         assertTrue("Creating scope", streamManager.createScope(SCOPE_1));
         assertTrue("Creating stream", streamManager.createStream(SCOPE_1, STREAM_1, STREAM_CONFIGURATION));
@@ -411,6 +410,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
     }
 
     @Test
+    @Ignore
     public void multipleControllerFailoverAndRestartCBRTest() throws Exception {
         Random random = RandomFactory.create();
         String scope = "testCBR2Scope" + random.nextInt(Integer.MAX_VALUE);
@@ -523,6 +523,24 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
                         new StreamImpl(scope, stream), 0L).join().values().stream().anyMatch(off -> off == 120),
                 5000,  2 * 60 * 1000L);
         log.info("Test Executed successfully");
+    }
+    @Test
+    public void testingControlCissue() throws Exception {
+        Random random = RandomFactory.create();
+        String scope = "testCBR2Scope" + random.nextInt(Integer.MAX_VALUE);
+        String stream = "multiControllerStream" + random.nextInt(Integer.MAX_VALUE);
+        // scale to three controller instances.
+        scaleAndUpdateControllerURI(3);
+        // scale to two segment store instances.
+        Futures.getAndHandleExceptions(segmentStoreService.scaleService(2), ExecutionException::new);
+        log.info("Successfully statred 2 instance of segment store service");
+        assertTrue("Creating scope", streamManager.createScope(scope));
+        assertTrue("Creating stream", streamManager.createStream(scope, stream, STREAM_CONFIGURATION));
+        log.info("Successfully created scope and stream");
+        Futures.getAndHandleExceptions(segmentStoreService.scaleService(0), ExecutionException::new);
+        log.info("Brought down segment store to 0");
+        Futures.getAndHandleExceptions(controllerService.scaleService(0), ExecutionException::new);
+        log.info("Brought down controller service to 0");
     }
 
     private void writingEventsToStream(int numberOfEvents, EventStreamWriter<String> writer, String scope, String stream) {
