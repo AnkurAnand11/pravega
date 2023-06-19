@@ -130,7 +130,7 @@ public class SingleSubscriberUpdateRetentionStreamCutTest extends AbstractReadWr
     @Test
     public void singleSubscriberCBRTest() throws Exception {
         log.info("Inside singleSubscriberCBRTest");
-        /*final ClientConfig clientConfig = Utils.buildClientConfig(controllerURI);
+        final ClientConfig clientConfig = Utils.buildClientConfig(controllerURI);
 
         @Cleanup
         EventStreamClientFactory clientFactory = EventStreamClientFactory.withScope(SCOPE, clientConfig);
@@ -209,6 +209,6 @@ public class SingleSubscriberUpdateRetentionStreamCutTest extends AbstractReadWr
         // and a little longer in order to confirm that the retention has taken place.
         AssertExtensions.assertEventuallyEquals("Truncation did not take place at offset 60", true, () -> controller.getSegmentsAtTime(
                 new StreamImpl(SCOPE, STREAM), 0L).join().values().stream().anyMatch(off -> off >= 60),
-                1000, 5 * 60 * 1000L);*/
+                1000, 5 * 60 * 1000L);
     }
 }

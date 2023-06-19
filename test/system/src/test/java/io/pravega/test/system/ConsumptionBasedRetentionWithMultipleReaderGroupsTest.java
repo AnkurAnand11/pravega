@@ -171,7 +171,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         assertTrue("Creating scope", streamManager.createScope(SCOPE));
         assertTrue("Creating stream", streamManager.createStream(SCOPE, STREAM, STREAM_CONFIGURATION));
 
-        /*@Cleanup
+        @Cleanup
         ConnectionFactory connectionFactory = new SocketConnectionFactoryImpl(ClientConfig.builder().build());
         @Cleanup
         ClientFactoryImpl clientFactory = new ClientFactoryImpl(SCOPE, controller, connectionFactory);
@@ -269,7 +269,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         // Check to make sure truncation happened at max stream cut
         AssertExtensions.assertEventuallyEquals("Truncation did not take place at offset 330.", true, () -> controller.getSegmentsAtTime(
                         new StreamImpl(SCOPE, STREAM), 0L).join().values().stream().anyMatch(off -> off == 330),
-                5000, 2 * 60 * 1000L);*/
+                5000, 2 * 60 * 1000L);
 
     }
 
@@ -280,7 +280,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         assertTrue("Creating stream", streamManager.createStream(SCOPE_1, STREAM_1, STREAM_CONFIGURATION));
         assertTrue("Creating stream", streamManager.createStream(SCOPE_1, STREAM_2, TIME_BASED_RETENTION_STREAM_CONFIGURATION));
 
-        /*@Cleanup
+        @Cleanup
         ConnectionFactory connectionFactory = new SocketConnectionFactoryImpl(ClientConfig.builder().build());
         @Cleanup
         ClientFactoryImpl clientFactory = new ClientFactoryImpl(SCOPE_1, controller, connectionFactory);
@@ -416,7 +416,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         // Since 0/450 is the stream cut satisfying min and max bounds and SLB is lower than this.
         // Truncation should happen at SLB
         assertEquals(true, controller.getSegmentsAtTime(
-                new StreamImpl(SCOPE_1, STREAM_2), 0L).join().values().stream().anyMatch(off -> off == 390));*/
+                new StreamImpl(SCOPE_1, STREAM_2), 0L).join().values().stream().anyMatch(off -> off == 390));
     }
 
     @Test
@@ -425,16 +425,16 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         Random random = RandomFactory.create();
         String scope = "testCBR2Scope" + random.nextInt(Integer.MAX_VALUE);
         String stream = "multiControllerStream" + random.nextInt(Integer.MAX_VALUE);
-        /*String readerGroupName = "testmultiControllerReaderGroup" + random.nextInt(Integer.MAX_VALUE);
+        String readerGroupName = "testmultiControllerReaderGroup" + random.nextInt(Integer.MAX_VALUE);
         // scale to three controller instances.
         scaleAndUpdateControllerURI(3);
         // scale to two segment store instances.
         Futures.getAndHandleExceptions(segmentStoreService.scaleService(2), ExecutionException::new);
-        log.info("Successfully statred 2 instance of segment store service");*/
+        log.info("Successfully statred 2 instance of segment store service");
         assertTrue("Creating scope", streamManager.createScope(scope));
         assertTrue("Creating stream", streamManager.createStream(scope, stream, STREAM_CONFIGURATION));
 
-        /*ConnectionFactory connectionFactory = new SocketConnectionFactoryImpl(ClientConfig.builder().build());
+        ConnectionFactory connectionFactory = new SocketConnectionFactoryImpl(ClientConfig.builder().build());
 
         ClientFactoryImpl clientFactory = new ClientFactoryImpl(scope, controller, connectionFactory);
 
@@ -500,7 +500,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         // Subscriber lower bound is 0/90, truncation should happen at this point
         AssertExtensions.assertEventuallyEquals("Truncation did not take place at offset 90.", true, () -> controller.getSegmentsAtTime(
                         new StreamImpl(scope, stream), 0L).join().values().stream().anyMatch(off -> off == 90),
-                5000,  2 * 60 * 1000L);*/
+                5000,  2 * 60 * 1000L);
 
         log.info("Test Executed successfully");
     }
@@ -516,7 +516,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         assertTrue("Creating scope", streamManager.createScope(scope));
         assertTrue("Creating stream", streamManager.createStream(scope, stream, STREAM_CONFIGURATION));
 
-        /*ConnectionFactory connectionFactory = new SocketConnectionFactoryImpl(ClientConfig.builder().build());
+        ConnectionFactory connectionFactory = new SocketConnectionFactoryImpl(ClientConfig.builder().build());
 
         ClientFactoryImpl clientFactory = new ClientFactoryImpl(scope, controller, connectionFactory);
 
@@ -577,7 +577,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         // Subscriber lower bound is 0/60, truncation should happen at this point
         AssertExtensions.assertEventuallyEquals("Truncation did not take place at offset 60.", true, () -> controller.getSegmentsAtTime(
                         new StreamImpl(scope, stream), 0L).join().values().stream().anyMatch(off -> off == 60),
-                5000,  2 * 60 * 1000L);*/
+                5000,  2 * 60 * 1000L);
         log.info("Test Executed successfully");
     }
 
@@ -594,7 +594,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
                 .build();
         assertTrue("Creating scope", streamManager.createScope(scope));
         assertTrue("Creating stream", streamManager.createStream(scope, streamName, streamConfiguration));
-        /*@Cleanup
+        @Cleanup
         ConnectionFactory connectionFactory = new SocketConnectionFactoryImpl(ClientConfig.builder().build());
         @Cleanup
         ClientFactoryImpl clientFactory = new ClientFactoryImpl(scope, controller, connectionFactory);
@@ -667,7 +667,7 @@ public class ConsumptionBasedRetentionWithMultipleReaderGroupsTest extends Abstr
         readerGroup.updateRetentionStreamCut(streamCuts2);
         AssertExtensions.assertEventuallyEquals("Truncation did not take place.", true, () -> controller.getSegmentsAtTime(
                         stream, 0L).join().equals(streamCuts2.values().stream().findFirst().get().asImpl().getPositions()),
-                5000, 2 * 60 * 1000L);*/
+                5000, 2 * 60 * 1000L);
         log.info("streamScalingCBRTest executed successfully");
     }
 

@@ -67,7 +67,7 @@ public class PravegaSegmentStoreK8sService extends AbstractService {
                         .thenApply(statuses -> statuses.stream()
                                                       .filter(podStatus -> podStatus.getContainerStatuses()
                                                                                     .stream()
-                                                                                    .allMatch(st -> st.getState().getRunning() != null))
+                                                                                    .allMatch(st -> st.getState().getRunning() != null && st.getReady()))
                                                       .count())
                         .thenApply(runCount -> runCount >= DEFAULT_SEGMENTSTORE_COUNT)
                         .exceptionally(t -> {

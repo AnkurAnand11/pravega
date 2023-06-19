@@ -76,7 +76,7 @@ public class ZookeeperK8sService extends AbstractService {
                         .thenApply(statuses -> statuses.stream()
                                                       .filter(podStatus -> podStatus.getContainerStatuses()
                                                                                     .stream()
-                                                                                    .allMatch(st -> st.getState().getRunning() != null))
+                                                                                    .allMatch(st -> st.getState().getRunning() != null && st.getReady()))
                                                       .count() * 2 - statuses.size())
                         .thenApply(netCount -> netCount > 0)
                         .exceptionally(t -> {

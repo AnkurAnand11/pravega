@@ -67,7 +67,7 @@ public class BookkeeperK8sService extends AbstractService {
                 .thenApply(statuses -> statuses.stream()
                         .filter(podStatus -> podStatus.getContainerStatuses()
                                 .stream()
-                                .allMatch(st -> st.getState().getRunning() != null))
+                                .allMatch(st -> st.getState().getRunning() != null && st.getReady()))
                         .count())
                 .thenApply(runCount -> runCount >= DEFAULT_BOOKIE_COUNT)
                 .exceptionally(t -> {
