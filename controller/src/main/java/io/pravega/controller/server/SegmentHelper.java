@@ -99,7 +99,8 @@ public class SegmentHelper implements AutoCloseable {
             .put(WireCommands.GetSegmentAttribute.class, ImmutableSet.of(WireCommands.SegmentAttribute.class))
             .put(WireCommands.UpdateSegmentAttribute.class, ImmutableSet.of(WireCommands.SegmentAttributeUpdated.class))
             .put(WireCommands.UpdateTableEntries.class, ImmutableSet.of(WireCommands.TableEntriesUpdated.class))
-            .put(WireCommands.RemoveTableKeys.class, ImmutableSet.of(WireCommands.TableKeysRemoved.class))
+            .put(WireCommands.RemoveTableKeys.class, ImmutableSet.of(WireCommands.TableKeysRemoved.class,
+                            WireCommands.TableKeyDoesNotExist.class))
             .put(WireCommands.ReadTable.class, ImmutableSet.of(WireCommands.TableRead.class))
             .put(WireCommands.ReadTableKeys.class, ImmutableSet.of(WireCommands.TableKeysRead.class))
             .put(WireCommands.ReadTableEntries.class, ImmutableSet.of(WireCommands.TableEntriesRead.class))
@@ -123,7 +124,6 @@ public class SegmentHelper implements AutoCloseable {
             .put(WireCommands.MergeSegmentsBatch.class, ImmutableSet.of(WireCommands.NoSuchSegment.class))
             .put(WireCommands.CreateSegment.class, ImmutableSet.of(WireCommands.SegmentAlreadyExists.class))
             .put(WireCommands.DeleteSegment.class, ImmutableSet.of(WireCommands.NoSuchSegment.class))
-            .put(WireCommands.RemoveTableKeys.class, ImmutableSet.of(WireCommands.TableKeyDoesNotExist.class))
             .build();
 
     protected final ConnectionPool connectionPool;
