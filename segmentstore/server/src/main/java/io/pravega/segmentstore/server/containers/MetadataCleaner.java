@@ -160,6 +160,7 @@ class MetadataCleaner extends AbstractThreadPoolService {
         long traceId = LoggerHelpers.traceEnterWithContext(log, this.traceObjectId, "metadataCleanup", lastSeqNo);
         // Get candidates.
         Collection<SegmentMetadata> cleanupCandidates = this.metadata.getEvictionCandidates(lastSeqNo, this.config.getMaxConcurrentSegmentEvictionCount());
+        log.info("CleanUp candidates : {}", cleanupCandidates);
         // Serialize only those segments that are still alive (not deleted or merged - those will get removed anyway).
         val serializationTasks = cleanupCandidates
                 .stream()

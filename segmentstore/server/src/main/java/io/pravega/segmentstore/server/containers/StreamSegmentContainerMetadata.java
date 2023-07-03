@@ -247,6 +247,7 @@ public class StreamSegmentContainerMetadata implements UpdateableContainerMetada
     @Override
     public Collection<SegmentMetadata> cleanup(Collection<SegmentMetadata> evictionCandidates, long sequenceNumberCutoff) {
         long adjustedCutoff = Math.min(sequenceNumberCutoff, this.lastTruncatedSequenceNumber.get());
+        log.info("CleanUp is called : sequenceNumberCutoff : {}, lastTruncatedSequenceNumber : {}",sequenceNumberCutoff, this.lastTruncatedSequenceNumber.get());
         Collection<SegmentMetadata> evictedSegments = new ArrayList<>(evictionCandidates.size());
         int count;
         synchronized (this.lock) {
@@ -254,6 +255,7 @@ public class StreamSegmentContainerMetadata implements UpdateableContainerMetada
                     .stream()
                     .filter(m -> isEligibleForEviction(m, adjustedCutoff))
                     .forEach(m -> {
+                        log.info("Removed Metadata : name: {}, id : {}",m.getName(), m.getId());
                         StreamSegmentMetadata removedMetadata = this.metadataById.remove(m.getId());
                         removedMetadata.markInactive();
                         this.metadataByName.remove(m.getName());
@@ -301,6 +303,9 @@ public class StreamSegmentContainerMetadata implements UpdateableContainerMetada
      * @return True if the Segment can be evicted, false otherwise.
      */
     private boolean isEligibleForEviction(SegmentMetadata metadata, long sequenceNumberCutoff) {
+        log.info("TestingCliChanges : id : {}, name : {}, sequenceNumberCutoff : {}, isPinned : {}, getLastUsed : {}, isDeleted : {}, lastTruncatedSequenceNumber : {}",
+                metadata.getId(), metadata.getName(), sequenceNumberCutoff, metadata.isPinned(),
+                metadata.getLastUsed(), metadata.isDeleted(), this.lastTruncatedSequenceNumber.get());
         return !metadata.isPinned()
                 && (metadata.getLastUsed() < sequenceNumberCutoff
                 || metadata.isDeleted() && metadata.getLastUsed() <= this.lastTruncatedSequenceNumber.get());
